@@ -1,0 +1,544 @@
+---
+title: "Wk02: Review of Linear Regression (in R)"
+subtitle: "EDUC 7456"
+author: "Benjamin Shear"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Packages
+
+```{r, message=FALSE}
+library(tidyverse)  # for data maanagement
+library(sjPlot)     # for regression tables and plots
+library(psych)      # for scatterplot matrix
+library(kableExtra) # for nicer tables in Markdown
+library(vtable)     # for the sumtable function
+```
+
+# Load Data
+
+We will use the salary data example from the book [Cohen, Cohen, West and Aiken (2003)](https://discovery.ebsco.com/c/3czfwv/details/rzy4omxynj?q=cohen%20cohen%20west%20aiken) an excellent textbook on regression.
+
+The dataset has information for 62 faculty members about their salary, time since PhD, number of publications, number of citations, and gender (male or female).
+
+I exported this CSV from the `MBESS` package in R that includes the data.
+
+```{r}
+salary_data <- read.csv(file = "salary.csv")
+```
+
+# Descriptive Statistics
+
+Always start with summary statistics for the data.
+
+First, I like to "look" at the datq. Here are the first few rows:
+
+```{r}
+head(salary_data) %>%
+  kable() %>% kable_styling()
+```
+
+## Summary Statistics
+
+You can use functions like `mean` or `sd` to calculate summary statistics for individual variables. You can use the `sumtable` function to get summary stats for all variables in the data frame:
+
+```{r}
+sumtable(salary_data)
+```
+
+## Correlation Matrix
+
+Because regression analysis is based on correlations among variables, being able to print and examine the correlation matrix is also useful.
+
+```{r}
+cor(salary_data) %>%
+  kable(digits=2) %>% kable_styling()
+```
+
+## Scatterplot Matrix
+
+To examine whether summarizing associations with the Pearson correlation (which assumes linear associations) is reasonable, we want to look at scatterplots among the variables. I like the `pairs.panels` function in the `psych` package to show correlations and distributions very quickly. (Warning: the default colors are not pretty.)
+
+```{r, fig.height=12, fig.width=12}
+pairs.panels(salary_data)
+```
+
+This combines a correlation matrix, histograms, and all pairwise scatterplots in a single figure.
+
+# The lm() Function
+
+The `lm()` function is the primary tool for estimating OLS regression in R. You need to give the function two pieces of information:
+
+1. A "formula".
+2. A dataset.
+
+The "formula" will have the form `YVARIABLE ~ XVAR1 + XVAR2 + ... + XVARK`. We'll see how to do interaction terms below.
+
+# Simple Regression
+
+We will fit a series of regression models predicting salary as the Y variable.
+
+## Simple regression, continuous Predictor
+
+Let's first estimate a simple regression model predicting salary from number of publications.
+
+### Graph the Data
+
+First, we should look at a scatterplot to assess the association graphically.
+
+```{r}
+ggplot(aes(x = pub, y = salary), data = salary_data) +
+  geom_point()
+```
+
+Next we can add smoothed line that helps visualize the nature of the association.
+
+```{r}
+ggplot(aes(x = pub, y = salary), data = salary_data) +
+  geom_point() +
+  geom_smooth()
+```
+
+There is a positive association - faculty with more publications tend to have higher salaries. The association could be reasonably summarized with a linear model based on the figure.
+
+### Estimate Model
+
+Here we will estimate the linear regression model:
+
+$$salary_i=\beta_0+\beta_1(pub_i)+\epsilon_i$$
+
+The code is:
+
+```{r}
+model1 <- lm(salary ~ pub, data = salary_data)
+```
+
+### Interpret Estimates
+
+To see just the coefficients, type the name of your model object:
+
+```{r}
+model1
+```
+
+Interpretations:
+
+- $\hat\beta_0$ (Intercept): for a faculty member with 0 publications, the predicted average salary is \$48,439.10.
+- $\hat\beta_1$ (slope for pub): for faculty members with 1 additional publication, we expect average salaries to be about \$350.80 higher.
+
+We can plot the OLS linear best fit line using the `geom_smooth(method="lm")` option:
+
+```{r}
+ggplot(aes(x = pub, y = salary), data = salary_data) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
+
+## Simple Regression, Dummy Variable Predictor
+
+The variable `sex` is coded 1 for female and 0 for male.
+
+### Graph the Data
+
+We can graphically compare salaries between the gender groups.
+
+```{r}
+ggplot(aes(x = sex, y = salary), data = salary_data) +
+  geom_point()
+```
+
+With a binary predictor a scatterplot is not as helpful. We can instead compare with a boxplot.
+
+```{r}
+ggplot(aes(x = factor(sex), y = salary), data = salary_data) +
+  geom_boxplot() +
+  geom_point()
+```
+
+### Estimate Model
+
+Even though the variable `sex` is a binary variable, we can use a similar model:
+
+Here we will estimate the linear regression model:
+
+$$salary_i=\beta_0+\beta_1(sex_i)+\epsilon_i$$
+
+The code is:
+
+```{r}
+model2 <- lm(salary ~ sex, data = salary_data)
+```
+
+### Interpret Estimates
+
+Look at the coefficients:
+
+```{r}
+model2
+```
+
+In a model with one binary (dummy variable) predictor, the intercept is the predicted value for the `0` group and the slope coefficient is the difference in means between the two groups. Thus:
+
+- $\hat\beta_0$ (Intercept): among male faculty members (sex=0), the predicted average salary is \$56,515.
+- $\hat\beta_1$ (slope for sex variable): female faculty members have an average salary approximately \$3,902 lower than male faculty members.
+
+# Centering a Predictor
+
+The intercept in a regression model reports the predicted average value of Y when X=0. In some cases X=0 may not be a meaningful point. However, if we subtract a constant from X we can make X=0 represent any value that we want, thus making the intercept more meaningful.
+
+As an example, I could "center" the publication variable at the average number of publications. To do this I subtract the average number of publications from each observation:
+
+```{r}
+mean(salary_data$pub)
+salary_data$pub_centered <- salary_data$pub-mean(salary_data$pub)
+```
+
+Now if I use `pub_centered` as the predictor in my regression model, I get a different estimate of the intercept (but the same slope).
+
+Model equation:
+
+$$salary_i=\beta_0+\beta_1(pub_i-\bar{pub})+\epsilon_i=\beta_0+\beta_1(pubCentered_i)+\epsilon_i=$$
+
+R code:
+
+```{r}
+model3 <- lm(salary ~ pub_centered, data = salary_data)
+```
+
+```{r}
+model3
+```
+
+- $\hat\beta_0$ (Intercept): for a faculty member with `pub_centered=0`, the predicted average salary is \$54,815.8. But now `pub_centered=0` represents a faculty member with an average number of publications (about 18).
+- $\hat\beta_1$ (slope for pub): for faculty members with 1 additional publication, we expect average salaries to be about \$350.80 higher. (Same as model above.)
+
+# Standardizing a Predictor
+
+You can standardize a predictor before estimating the regression model to obtain coefficient estimates relative to standardized units of X.
+
+Standardize number of publications:
+
+```{r}
+salary_data$pub_stdzd <- (salary_data$pub-mean(salary_data$pub))/sd(salary_data$pub)
+```
+
+Estimate model:
+
+```{r}
+model4 <- lm(salary ~ pub_stdzd, salary_data)
+```
+
+```{r}
+model4
+```
+
+- $\hat\beta_0$ (Intercept): for a faculty member with `pub_stdzd=0`, the predicted average salary is \$54,816. But now `pub_stdzd=0` represents a faculty member with an average number of publications (about 18). (Note this differs very slightly from the result above, likely due to the rounding in calculating standardized variables.)
+- $\hat\beta_1$ (slope for pub_stdzd): for faculty members with a 1 SD higher number of publications, we expect average salaries to be about \$4,913 higher. This interpretation arises because a 1-unit increase in `pub_stdzd` is a 1 SD increase.
+
+```{r}
+ggplot(aes(x = pub_stdzd, y = salary), data = salary_data) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
+
+# Fully Standardized Coefficients
+
+More often when someone refers to a "standardized regression coefficient" they refer to a coefficient from a model where X and Y are both standardized.
+
+You can use the `scale()` function to standardize a variable quickly. 
+
+Here is how we could estimate standardized coefficients by standardizing X and Y.
+
+```{r}
+salary_data$pubZ <- scale(salary_data$pub)
+salary_data$salaryZ <- scale(salary_data$salary)
+mean(salary_data$pubZ)
+sd(salary_data$pubZ)
+mean(salary_data$salaryZ)
+sd(salary_data$salaryZ)
+```
+
+Now estimate the regression model:
+
+```{r}
+modelZ <- lm(salaryZ ~ pubZ, data = salary_data)
+modelZ
+```
+
+# Making Nicer Regression Tables
+
+## Simple Version with tab_model()
+
+The `summary()` function in R can be used to get a summary of an estimated model. But it has a massive amount of information. The `tab_model()` function in the `sjPlot()` package is very helpful for summary tables of regression models. Here is an example for our first model:
+
+```{r}
+tab_model(model1)
+```
+
+I can also include multiple different models for comparison:
+
+```{r}
+tab_model(model1, model2, model3, model4)
+```
+
+## Customize tab_model()
+
+There are lots of options for customizing. See more [here](https://strengejacke.github.io/sjPlot/articles/tab_model_estimates.html).
+
+For example, we can label the models, adjust the digits (rounding), and include an estimated SE instead of a CI.
+
+```{r}
+tab_model(model1, model2, model3, model4,
+          dv.labels = c("Model1","Model2","Model3","Model4"),
+          show.ci = FALSE,
+          show.se = TRUE,
+          digits=1,
+          string.se = "SE",
+          string.est = "Est.")
+```
+
+## Standardized Coefficients with tab_model()
+
+Actually, tab_model() can even produce fully standardized coefficients for us. It calls them "std. Beta". 
+
+```{r}
+tab_model(model1, show.std=TRUE)
+```
+
+This matches the result from our standardized model:
+
+```{r}
+tab_model(modelZ)
+```
+
+# Multiple Regression
+
+We will estimate a multiple regression model predicting salary from number of publications and time since earning a PhD.
+
+The model is:
+
+$$salary_i=\beta_0+\beta_1(pub_i)+\beta_2(time_i)+\epsilon_i$$
+
+### Estimate Model
+
+```{r}
+model5 <- lm(salary ~ pub + time, data = salary_data)
+```
+
+### Interpret Estimates
+
+```{r}
+model5
+```
+
+- $\hat\beta_0$ (Intercept): for a faculty member with 0 publications and just completed a PhD (0 years since completion) the predicted average salary is \$44,956.
+- $\hat\beta_1$ (slope for pub): for faculty members with 1 additional publication, we expect average salaries to be about \$133 higher, holding constant the time since PhD.
+- $\hat\beta_2$ (slope for time): for faculty members with 1 additional year of experience, we expect average salaries to be about \$1096 higher, holding constant the number of publications.
+
+We can compare this multiple regression model to the simpler model with only `pub`.
+
+```{r}
+tab_model(model1, model5,
+          dv.labels = c("Model1","Model5"),
+          show.ci = FALSE,
+          show.se = TRUE,
+          digits=1,
+          string.se = "SE",
+          string.est = "Est.")
+```
+
+Although faculty with more publications tend to have higher salaries, this difference is less pronounced after we adjust for experience (measured as time since PhD).
+
+If we are interested in making an inference to a broader population, we would conclude that there is no statistically significant association between number of publications and salary, after we control for experience (measured as time since PhD).
+
+# Extract Model Results
+
+The following code shows how to obtain some additional useful information after estimating a regression model.
+
+### Coefficients
+
+You can see the coefficients by typing the name of your stored model object, or with the `coef` function:
+
+```{r}
+model5
+coef(model5)
+```
+
+### R-squared
+
+To get the R-squared value:
+
+```{r}
+summary(model5)$r.squared
+```
+
+(Or use the `tab_model` above.)
+
+### Predicted Y Values
+
+To get predicted Y values:
+
+```{r}
+predict(model5)
+```
+
+These could be stored and used later.
+
+### Residuals
+
+To get the residuals:
+
+```{r}
+resid(model5)
+```
+
+These could be stored and used later.
+
+# Check Assumptions
+
+If you run the `plot` function on your estimated model, it will produce a series of 4 plots that can be used to help evaluate normality of the residuals, whether the functional form may be mis-specified, equality of error variance, and whether any individual points are especially influential to the results.
+
+```{r}
+plot(model5)
+```
+
+# Interactions
+
+We will use interaction terms in this class frequently. Interactions can be complicated to interpret in some contexts. Here are some rules of advice for working with interactions (you do not need to follow these absolutely, but most of the time these will be best!:
+
+1. Include interaction terms by creating variables representing interactions rather than by including them in R formulas.
+1. Center continuous variables before including them in interactions.
+1. Include main effects for all variables involved in the interaction.
+1. Interpret interactions graphically when possible, or with predicted values.
+
+## Continuous by Continuous Interaction
+
+Does the association between salary and publications vary over time?
+
+We already created `pub_centered`. Here I create `time_centered` and then create an interaction of `pub_by_time` as $pub\_centered*time\_centered$.
+
+```{r}
+salary_data <- salary_data %>%
+  mutate(
+    time_centered=time-mean(time),
+    pub_by_time = pub_centered*time_centered
+  )
+```
+
+Now estimate the regression model include main effects of `pub` and `time` and the interaction.
+
+$$salary_i=\beta_0+\beta_1(pubC_i)+\beta_2(timeC_i)+\beta_3(pubC_i*timeC_i)+\epsilon_i$$
+
+R code:
+
+```{r}
+model6 <- lm(salary ~ pub_centered + time_centered + pub_by_time,
+             data = salary_data)
+```
+
+Regression table:
+
+```{r}
+tab_model(model6, digits=1)
+```
+
+Interpretations:
+
+- $\beta_0$: for a faculty member with an average number of publications and average time since PhD, the predicted average salary is about \$54,238.
+
+- $\beta_1$: among faculty members with average time since PhD (`time_centered=0`), we predict that faculty with 1 additional publication will have a higher salary by \$105.
+
+- $\beta_2$: among faculty members with an average number of publications, we predict that faculty with 1 additional year of experience since PhD will have a higher salary by \$964.
+
+- $\beta_3$: the positive interaction indicates that the association between publications and salary is stronger (more positive) among more experienced faculty. (But, we could also say that the association between experience/time and salary is stronger among faculty with more publications.)
+
+## R syntax for interactions
+
+### Option 1
+
+We can also include an interaction term directly in the R formula, without need to create a new variable. we use the `:` operator.
+
+```{r}
+model7 <- lm(salary ~ pub_centered + time_centered + pub_centered:time_centered,
+             data = salary_data)
+tab_model(model7, digits=1)
+```
+
+In this case I specified the main effects and then an interaction.
+
+### Option 2
+
+I can also include an interaction using the `*` operator. Here I would write:
+
+```{r}
+model8 <- lm(salary ~ pub_centered * time_centered,
+             data = salary_data)
+tab_model(model8, digits=1)
+```
+
+By including the `*` term, R will automatically include both main effects plus the interaction term. 
+
+## Plot Interaction
+
+If we use the R interactions syntax, then we can use the `plot_model()` function to plot the interactions. Here I will show what the regression line predicting salary from publications looks like for three groups of faculty:
+
+- Average experience
+- 1 SD below the mean of experience
+- 1 SD above the mean of experience
+
+```{r}
+plot_model(model7, type="int",
+           terms = c("pub_centered", "time_centered"),
+           mdrt.values="meansd") # "meansd" plots for the mean and +-1SD
+```
+
+We see steeper slopes with more experience. (But the overlapping confidence regions indicate these differences are not statistically significant).
+
+## Predicted values and equations
+
+We can also work out the equations for these lines. Note that mean experience is about 6.79 years, with SD=4.28. Remember that `time_centered=0` actually represents average experience, so `time_centered=4.28` will be 1 SD above the mean and `time_centered=4-.28` will be 1 SD below.
+
+Regression equation for 1 SD below mean experience:
+
+$$\hat{salary}_i=\hat \beta_0+\hat \beta_1(pubC_i)+\hat \beta_2(-4.28)+\hat \beta_3(pubC_i*-4.28)$$
+
+If I combine terms:
+
+$$\hat{salary}_i=[\hat \beta_0 +\hat \beta_2(-4.28)]+[\hat \beta_1+\hat \beta_3(-4.28)](pubC_i)$$
+
+And now plug in the coefficient estimates:
+
+$$\hat{salary}_i=[54238.1 +964.2*(-4.28)]+[104.7+15.1*(-4.28)](pubC_i)$$
+
+$$\hat{salary}_i=50111.32+40.1(pubC_i)$$
+
+By the same process, for average level of experience:
+
+$$\hat{salary}_i=[54238.1 +964.2*(0)]+[104.7+15.1*(0)](pubC_i)$$
+
+$$\hat{salary}_i=54238.1+104.7(pubC_i)$$
+
+By the same process, the equation for 1 SD above the mean will be:
+
+$$\hat{salary}_i=[54238.1 +964.2*(4.28)]+[104.7+15.1*(4.28)](pubC_i)$$
+$$\hat{salary}_i=58364.88+169.3(pubC_i)$$
+
+And now draw the three lines (this re-creates a simpler version of the plot above).
+
+```{r}
+ggplot(aes(x=pub_centered, y=salary), data = salary_data) +
+  geom_point(alpha=0) +
+  geom_abline(slope=40.1, intercept=50111.32, color="red") +
+  geom_abline(slope=104.7, intercept=54238.1, color="blue") +
+  geom_abline(slope=169.3, intercept=58364.88, color="green")
+```
+

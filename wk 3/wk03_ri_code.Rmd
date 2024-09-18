@@ -1,0 +1,233 @@
+---
+title: "Estimating Random Intercept Model in R Part 1"
+subtitle: "EDUC 7456"
+author: "Benjamin Shear"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This document reviews the R code needed to estimate random intercept models in `R`. The document uses the `popular.sav` example dataset from the Hox et al. (2018) textbook.
+
+## Load Packages
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+library(vtable)
+library(lme4)
+library(sjPlot)
+library(arm)
+library(jtools)
+library(insight)
+```
+
+## Load Data
+
+In the example here we will use the `popular2.sav` SPSS format dataset from Hox et al. (2018). See Appendix E for discussion of the dataset.
+
+```{r}
+dat_popular <- read_spss(file = "popular2.sav")
+head(dat_popular) 
+```
+
+### Convert factor to numeric
+
+The variable `sex` is a labelled variable. This will sometimes prevent the variable from being summarized as a binary indicator variable. Here I create a new indicator (dummy) variable called `female` equal to 1 if a student's sex is "girl" in the original data and equal to 0 if the student's sex is "boy".
+
+```{r}
+dat_popular$female <- ifelse(dat_popular$sex==1,1,0)
+```
+
+## Summarize Data
+
+With a multilevel dataset we need to summarize the data at each level of interest to understand the structure.
+
+### Full Dataset
+
+We will use the `sumtable` function from the `vtable` package again to create summary tables. For now we will only ask the function to summarize the following variables:
+
+- pupil
+- class
+- extrav
+- female
+- texp
+- popular
+
+```{r}
+sumtable(data = dat_popular, vars = c("pupil", "class", "extrav", "female", "texp", "popular"))
+```
+
+### Summarize Level-1 Variables
+
+For a summary of level-1 variables we can make the same table, but remove the `class` and `texp` variables, which are technically "level-2" variables. They do not vary across students within the same class.
+
+```{r}
+sumtable(data = dat_popular, vars = c("pupil", "extrav", "female", "popular"))
+```
+
+### Calculate Level-2 Variables
+
+At level-2 we want to summarize the `class` variable and the `texp` variable. To facilitate this, we will create a new dataset in R that has only 100 rows - 1 for each class. For the `texp` variable I will calculate the class mean; however, the `texp` variable doesn't vary within classes so the mean is the same thing as "the" value for that class. I will also ask R to calculate the number of students in each class. Although this is not a variable we will use in the models later, it is very useful information to summarize.
+
+To do the summary, I use the "pipe" operator `%>%` and the `group_by()` and the `summarise()` functions. We will use these often.
+
+```{r}
+level2_data <- dat_popular %>%
+  group_by(class) %>%  # group by class ID
+  summarise(
+    MNtexp = mean(texp), # the MNtexp will be the mean of texp in each class
+    Nstu = n(),           # Nstu is the number of rows in each class
+    mnpop=mean(popular)
+  ) %>% ungroup()
+```
+
+### Summarize Level-2 Variables
+
+```{r}
+sumtable(level2_data)
+```
+
+## Empty Random Intercept (RI) Model
+
+The "empty" RI model allows us to estimate the between-class and within-class variance components of the `popular` rating variable. Statistically the model is:
+
+$$popular_{ij}=\gamma_{00}+u_{0j}+e_{ij}$$
+
+$$u_{0j} \sim N(0,\sigma^2_{u_0})$$
+
+$$e_{ij} \sim N(0,\sigma^2_e)$$
+
+### Make Picture of Empty RI Model
+
+We can make graph to show this model using `ggplot()`:
+
+```{r, fig.height=4, fig.width=12}
+dat_popular %>%
+  ggplot(aes(x=class, y=popular)) +
+  geom_hline(yintercept = mean(dat_popular$popular), color="black", lty=2) +
+  geom_jitter(alpha=0.75, color="grey", width=0.05) +
+  stat_summary(
+    fun = "mean",
+    geom = "point",
+    col = "red",
+    shape = 15,
+    size = 4,
+    alpha = 0.65
+  ) +
+  scale_x_continuous(breaks = seq(1,100,5)) +
+  scale_y_continuous(limits = c(0,10), breaks = seq(0,10,2)) +
+  theme_bw()
+```
+
+### Estimate with lmer()
+
+We estimate the model using `lmer()`.
+
+```{r}
+ri_model <- lmer(popular ~ 1 + (1 | class), data = dat_popular)
+```
+
+### Print Results
+
+The simplest way to "see" the results is to use the `summary()` function, although it is a lot of output.
+
+```{r}
+summary(ri_model)
+```
+
+### How to "get" Variance Components
+
+For now, we are most interested in the variance components. We can have R give those to us in an easier to use way using `VarrCorr()`.
+
+```{r}
+VarCorr(ri_model)
+```
+
+Or a slightly more detailed version by converting to a data.frame.
+
+```{r}
+data.frame(VarCorr(ri_model))
+```
+
+But we can also use the [insight](https://easystats.github.io/insight/index.html) package functions.
+
+```{r}
+get_variance_intercept(ri_model)
+get_variance_residual(ri_model)
+```
+
+### Calculate ICC
+
+We can calculate the ICC as:
+
+$$\hat {ICC}=\frac{\hat\sigma^2_{u_0}}{\hat\sigma^2_{u_0}+\hat \sigma^2_e}$$
+
+You could manually calculate this. Using the R objects we can calculate:
+
+Option 1 using `VarCorr()`
+
+```{r}
+varcomps <- data.frame(VarCorr(ri_model))
+var_btwn <- varcomps[1,4]
+var_wthn <- varcomps[2,4]
+(var_btwn)/(var_btwn+var_wthn)
+```
+
+Option 2 using `insight` functions
+
+```{r}
+var_btwn <- get_variance_intercept(ri_model)
+var_wthn <- get_variance_residual(ri_model)
+(var_btwn)/(var_btwn+var_wthn)
+```
+
+Option 3: most of the functions below!
+
+## More Ways to Print Results
+
+Here are three useful ways to summarize the results of a `lmer` object. They are useful for different contexts:
+
+- [tab_model()](https://strengejacke.github.io/sjPlot/articles/tab_model_estimates.html) in the `sJPlot` package is great for making nice tables that you could include in a paper. Very customizable, and can be exported to MS Word and Excel.
+- [display()](https://rdrr.io/cran/arm/#vignettes) in the `arm` package is useful for a compact, quick summary to look at results that is less messy than the `summary()` function. This is mostly useful for a quick look at a model, for example while doing analysis or in class.
+- [summ()](https://jtools.jacob-long.com/articles/summ.html) in the `jtools` package is somewhere in between. It is a bit more detailed and neater than `display()` but it isn't really "publication-ready" the way `tab_model()` results (almost) are.
+
+### tab_model() in `sjPlot`
+
+Default:
+
+```{r}
+tab_model(ri_model)
+```
+
+Some customization:
+
+```{r}
+tab_model(ri_model,
+          dv.labels = "Model Title",
+          show.ci=FALSE,
+          show.se=TRUE,
+          string.se="SE",
+          string.est="Est.")
+```
+
+### display() in `arm`
+
+```{r}
+arm::display(ri_model, digits=3)
+```
+
+### summ() in `jtools`
+
+```{r}
+summ(ri_model)
+```
+

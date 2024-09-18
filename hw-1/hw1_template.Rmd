@@ -1,0 +1,60 @@
+---
+title: "Short HW 1"
+author: "[YOUR NAME]"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages
+
+> Note: you may need to install some of these packages if you do not already have them installed. 
+
+```{r}
+library(tidyverse)
+library(haven)
+library(sjPlot)
+library(vtable)
+```
+
+# Load Data
+
+```{r}
+auto <- read.csv(file = "Auto.csv")
+```
+
+# Qestion 1 
+
+What is the mean of the `mgp` variable?
+
+```{r}
+mean(auto$mpg)
+```
+
+The mean `mpg` is: [type your answer here]
+
+# Question 2
+
+What is the correlation between `horsepower` and `mpg`?
+
+```{r}
+cor(auto$horsepower, auto$mpg)
+```
+
+The correlation between `horsepower` and `mpg` is: [type your answer here]
+
+Here is a scatterplot of the two variables:
+
+```{r}
+plot(x=auto$horsepower, y=auto$mpg)
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+

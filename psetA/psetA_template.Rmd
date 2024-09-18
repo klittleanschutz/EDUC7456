@@ -1,0 +1,327 @@
+---
+title: "PSET A"
+author: "Kate Little"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages
+
+```{r}
+library(sjPlot)     # for tab_model() 
+library(vtable)     # for sumtable()
+library(tidyverse)  # for general data processing
+
+setwd("C:/Users/littkate/Desktop/EDUC7456/psetA")
+```
+# Data
+
+In this problem set we will use a subset of data from the [Stanford Education Data Archive (SEDA)](https://edopportunity.org), part of the Educational Opportunity Project. Please remember to complete the [data use agreement here](https://edopportunity.org/get-the-data/), especially if you are interested in using the SEDA data in other projects. The SEDA data includes data on educational opportunities in the US for nearly all public schools and public school districts enrolling students in grades 3 – 8. The complete data files include information on student achievement test scores from state accountability testing as well as socio-demographic information from sources such as the [NCES Common Core of Data](https://nces.ed.gov/ccd/) and the [Census Bureau’s American Community Survey](https://www.census.gov/programs-surveys/acs). These data represent average characteristics for each district during the time period 2009-2018.
+
+In this problem set we will use district-level data. The website contains data at other levels of aggregation, with additional variables. In the PSET A dataset, each row represents a single school district. Although the file contains extra variables, the variables we will use in the current assignment are: 
+
+-	**sedalea**: unique school district ID variable
+-	**sedaleaname**: name of the school district district
+-	**stateabb**: state abbreviation for state where district is located
+-	**rural**: percent of students in the district enrolled in schools in rural locales
+-	**avgrdall**: average per-grade enrollment in the district
+-	**sesavgall**: average socioeconomic status (SES) of families living in the school district, based on a combination of six factors. This variable is standardized relative to the national distribution of SES across districts.
+-	**avg_math**: average mathematics test scores in the district among 3rd-8th graders, on the "GCS" scale. On this scale, a value of "3" indicates average scores at the 3rd grade level, a value of "4" at the 4th grade level, etc.
+-	**avg_rla**: average reading/language arts test scores in the district among 3rd-8th graders, on the "GCS" scale. On this scale, a value of "3" indicates average scores at the 3rd grade level, a value of "4" at the 4th grade level, etc.
+
+*(Note that I have re-named some of the variables for simplicity. These will not necessarily match the variable names in the SEDA files on the website. You can access the data cleaning code that converts from the raw SEDA files to the PSET data on Canvas.)*
+
+# Question 1
+
+*Run the following code to load the data, subset to key variables and remove districts with missing data. No answers needed.*
+
+```{r}
+seda <- read.csv(file = "seda_psetA.csv")
+# the select(.data=X, ...VARS... ) function selects the variables VARS from X
+seda <- select(.data=seda,
+               sedalea, sedaleaname, stateabb,
+               avg_math, avg_rla, 
+               sesavgall, rural, avgrdall)
+```
+
+Here the `sumtable()` function is used to produce a helpful quick summary of the data.
+
+```{r}
+sumtable(seda)
+```
+
+The following code will drop any rows with missing values in them. This is generally not a good way to handle missing data, but can be a useful tool to know about. We'll use it here for simplicity.
+
+```{r}
+nrow(seda)
+seda <- drop_na(seda)
+nrow(seda)
+```
+
+# Question 2
+
+*Create a table of summary statistics for the variables avg_math, avg_rla, rural, sesavgall. The table should include the following statistics for each variable: number of observations, mean, standard deviation, minimum, and maximum values.*
+
+```{r}
+sumtable(seda, vars = c('avg_math', 'avg_rla', 'rural', 'sesavgall'))
+
+```
+
+# Question 3
+
+*How many total school districts are represented in the data now that we have removed districts with missing data?*
+
+*Your answer:*
+
+There are 12,257 districts with non-missing data in the dataset.
+
+# Question 4
+
+*Create a scatterplot showing average district SES on the X-axis and average math test scores on the Y-axis. Add a linear trend line to the scatterplot and calculate the correlation between average district SES and average math test scores. Based on the scatterplot and correlation briefly describe the association between these two variables.*
+
+```{r}
+seda %>%
+  ggplot(aes(x=sesavgall, y=avg_math)) +
+  geom_point(size=2) +
+  geom_smooth(method="lm", se=FALSE)+
+  ylab("Avg Math scores in each district")+
+  xlab("Avg SES score of families living in each district")+
+  ggtitle("Increase in avg math scores vs avg SES score at the district levels")
+
+
+cor(seda$sesavgall, seda$avg_math)
+```
+
+Based on the scatterplot and the data there appears to be a strong positive correlation that appears to be linear between average SES score and average math score at the school district level. The correlation between avg SES score and avg math score is 0.73 indicating that as average SES scores increase, so do average math scores.
+
+
+
+# Question 5
+
+*Because these data represent the AVERAGE math test scores and AVERAGE family SES across districts, the correlation in #4 is an "ecological correlation." If we had INDIVIDUAL student-level test scores and family SES values, do you think the correlation between INDIVIDUAL student math test scores and family SES would be HIGHER, LOWER, or ABOUT THE SAME as the correlation in #4? Briefly explain your answer.*
+
+
+I would intuitively think that the correlation would be stronger, because of other determinants in household and behaviors. Those homes with higher socioeceonomic status would likely have much more facility to promote a child's math learning than those with lower SES. Although, the response to the previous question provides no statistical insight into trends at the individual level from the district aggregate level as ecological fallacy does not permit inferences from one ecological (aggregate) level to another level such as that of the individual.
+
+```{r}
+# no  code here
+```
+
+# Question 6
+
+*Estimate a simple linear regression model using least squares that predicts district average math test scores as a function of district average SES. Produce summary information for the model using the built-in summary() command or a nice table with a function such as tab_model(). Provide a 1-sentence interpretation for each of the following statistics from the model: intercept, slope, r-squared, and root mean squared error (RMSE; R calls this the "residual standard error").*
+
+```{r}
+ses_math_model1<-lm(avg_math ~ sesavgall, data = seda)
+
+plot(seda$sesavgall, seda$avg_math,main = "Scatterplot and regression line\nof average SES score and average\nmath score in school districts")
+abline(ses_math_model1, col = "blue")
+model_summary<-summary(ses_math_model1)
+rmse<-model_summary$sigma
+tab_model(ses_math_model1)
+rmse
+
+# summary(ses_math_model1)
+```
+
+## Interpretation
+- For a district in which the average SES score is 0, the predicted average math GCS score would be 5.25.
+- For a 1 unit change in SES score, the average math score is predicted to change by 0.97 units. 
+- 54.5% of the variation in increase in math scores is explained by the district's SES score.
+- The RMSE is 0.749 meaning that 95% of the actual values will fall within 2(0.749) SES units of the predicted value.
+*RMSE: the estimated RMSE ("residual standard error" in `R`) is about 0.75, indicating that the average size of the residuals is +/-0.75. Put differently, if we predict average math scores based on average SES we can expect the predictions to differ from observed values by about 0.75 units, on average.*
+
+# Question 7
+
+*Create a histogram of the "rural" variable. This variable reports the proportion of students in each district who are enrolled in rural schools. In 1-2 sentences briefly describe the shape of the distribution and explain why it might have this shape.*
+
+```{r}
+
+summary(seda$rural)
+
+ggplot(seda, aes(x = rural))+
+geom_histogram(binwidth = 0.05)
+
+```
+
+The histogram is U shaped and shows an incredibly large number of the districts have 100% of students attending rural schools, there are also a very large number of school with 0% of students attending rural schools. The 3rd most common is 5% of students in rural schools, and the fewest number of districts have 95% of the students attending rural schools. 
+
+It seems natural that there would be many districts with 0% of students attending rural schools, as there are likely many districts that cover a smaller geographic area  in urban settings; School districts in Brooklyn would likely not have any students attending rural schools. Opposingly, school districts that are in rural areas often cover a very large geographic area that is almost all rural, so it would be nearly impossible to have 95% of students attending urban schools, but it is quite possible that there is one rural school in a mostly urban district, so 5% of students attending that school makes plenty of sense.
+# Question 8
+
+*We will define a district as "rural" if 50% or more of the students in the district are in rural schools. Create a new variable that is equal to 0 if less than 50% of students in the district are in rural schools and equal to 1 if 50% or more of students are in rural schools. Call this variable "rural_ind". What percent of districts are rural based on this definition?*
+
+```{r}
+# code to create the rural_ind variable:
+seda$rural_ind <- ifelse(seda$rural<0.5, 0, 1)
+
+table(seda$rural_ind)
+6396/12257
+
+
+```
+
+52.1% of school districts in this dataset are rural.
+
+# Question 9
+
+*Use a hypothesis test to determine whether the difference in average math scores between rural and non-rural districts is statistically significant at the p<0.05 level. (HINT: you could use either the t.test() function in R or you can use a regression model). Briefly report your conclusion.*
+
+H0: average math scores are the same in rural and urban Districts
+HA: average math scores differ in rural and urban districts
+
+```{r}
+
+rural<-seda%>%
+        filter(rural_ind == 1)
+urban<-seda%>%
+        filter(rural_ind==0)
+
+t.test(rural$avg_math, urban$avg_math)
+t.test(avg_math ~ rural_ind, var.equal=TRUE, data = seda)
+
+```
+
+Rural and Urban districts to not have the same average math scores. They differ significantly (p<0.05). Rural districts have a mean score of 5.48 and urban districts have a mean score os 5.68. 
+
+*Instructor answer*
+
+We can use a linear regression model to test the significance of this difference. To do this, we estimate a model using `rural_ind` as a predictor:
+
+$$math_d=\beta_0+\beta_1(rural\_ind_d)+e_d$$
+
+```{r}
+mod_rural <- lm(avg_math ~ rural_ind, data = seda)
+```
+
+
+# Question 10
+
+*Now we'll compare the average math achievement in rural versus non-rural schools after controlling for differences in district SES. Estimate two regression models:*
+
+*1. a simple regression model predicting average math scores from the rural_ind variable, and*
+
+*2. a multiple regression model predicting average math scores as a function of the rural_ind variable and the avgsesall variables.*
+
+*Display the two sets of model estimates side-by-side in a table (e.g., using the tab_model() function). Write 1 sentence interpreting each of the following estimates from model 2: intercept, coefficient for rural_ind, coefficient for avgsesall, and r-squared.*
+
+```{r}
+plot(seda$rural_ind, seda$avg_math)
+# I cannot use a lm to plot a binary variable as there will not be a linear relationship. I will use the variable rural instead
+```
+```{r}
+plot(seda$rural_ind, seda$avg_math)
+
+library(gridExtra) # for showing table side by side
+rur_math_model1<-lm(avg_math~rural_ind, data = seda)
+rur_math_model2<-lm(avg_math~sesavgall+rural_ind, data = seda)
+
+tab_model(rur_math_model1, rur_math_model2,title = "Comparison of Simple and Multiple Linear Regression Models",
+          dv.labels = c("Simple Model (rural only)", "Multiple Model (SES and rural)"))
+```
+
+*AI disclaimer* I used github copilot to help understand how to generate two adjacent tables with tab_model()
+
+## Simple Model
+- For districts with 0% of students in rural schools (100% urban), the predicted average math score is 5.71.
+- For a 10% change in the proportion of rural students in the district, the average math score is predicted to change by negative 0.025 units. 
+- 1% of the variation in increase in math scores is explained by percent of students in rural schools in the district, likely because of the concentration in all-urban or all-rural schools.
+
+## Multiple Model
+- When the school district has 0% rural students and the avg distrect SES score is 0, the predicted average math score of the district is 5.35.
+- for each 10% increase in students attending rural schools in the district, the predicted avg math score would decrease by 0.018 holding constant the SES Scores. For each 1 unit increase in avg district SES score, the predicted avg math score would increase by 0.96, holding constant the percent of students in rural schools.
+- 55% of the variation in increase in math scores is explained by the district's SES score and the % of students in rural schools.
+
+
+*correction* I used $rural for this part when I should have used rural_ind. I would like to know more about this idea of using a binary var instead of a continuous var here
+# Question 11
+
+*Is the difference in average math test scores between rural and non-rural districts statistically significant at the p<0.05 level after controlling for average district SES? How do you know?*
+
+Yes, the difference between rural and non-rural test scores is significantly different after controlling (adjusting) for average district SES. I know this because the the p-value for the rural variable in the second model is <0.001 meaning it is significant after controlling for SES.
+
+*comment* is there a substantive differnece in 'adjusting for' and 'controlling for'?
+
+# Question 12
+
+*Now you’ll examine whether the association between district SES and math scores differs among rural and non-rural districts. Estimate a multiple regression model predicting average math scores as a function of the rural_ind variable, the sesavgall variable, and the interaction between these two variables. Report the results of this model in a nicely formatted regression table.*
+
+```{r}
+rur_math_model3<-lm(avg_math~sesavgall+rural_ind + (sesavgall*rural_ind), data = seda)
+
+# alternate syntax :
+mod_rural_ses_int <- lm(avg_math ~ rural_ind + sesavgall + rural_ind:sesavgall,
+                        data = seda)
+
+tab_model(rur_math_model3, title = "Interactive model with SES and Rural")
+```
+
+
+# Question 13
+
+*Based on your regression model, does the association between average SES and average math scores differ in rural versus non-rural districts? How do you know? If the association is different, explain how the association differs. (HINT: it might help to create a graph!)*
+
+```{r}
+
+urban_lm <- lm(avg_math ~ sesavgall, data = subset(seda, rural_ind == 0))
+rural_lm <- lm(avg_math ~ sesavgall, data = subset(seda, rural_ind == 1))
+tab_model(urban_lm, rural_lm, title = "avg_math ~ Sesavgall compared in rural vs urban",
+          dv.labels = c("Urban", "Rural"))
+
+
+ggplot(seda, aes(x = sesavgall, y = avg_math, color = as.factor(rural_ind))) +
+  geom_point() +
+  geom_smooth(data = subset(seda, rural_ind == 0), aes(x = sesavgall, y = avg_math), method = "lm", se = FALSE, color = "blue") +
+  geom_smooth(data = subset(seda, rural_ind == 1), aes(x = sesavgall, y = avg_math), method = "lm", se = FALSE, color = "red") +
+  labs(title = "Scatterplot of Average SES vs. Average Math Score",
+       x = "Average SES",
+       y = "Average Math Score",
+       color = "Rural Indicator") +
+  scale_color_manual(values = c("0" = "blue", "1" = "red")) +
+  theme_minimal()
+
+```
+*AI disclaimer* I used copilot to help generate ggplot graph with two lines and different colored dots
+
+Yes, the association between SES scores and avg math scores is different in rural and urban school districts. As seen in the plot above, the regression line for rural districts (red) is not as steep as the line for urban districts (blue). This implies that in urban districts, a change in SES predicts a greater change in avg math scores than in rural districts.
+
+*see solutions for more detailed interpretation*
+
+# Question 14
+
+*Plot a histogram of the residuals from the model you estimated in Question #13. Briefly comment on whether the assumption that the residuals are normally distributed appears reasonable for these data.*
+
+```{r}
+
+hist(rur_math_model3$residuals, breaks = 40 )
+```
+
+Yes. The histogram of the residuals of from the interactive model appears to be very normal, so the assumption that residuals are normally distributed applies.
+
+*alternate response* 
+We can obtain and then store the model residuals using `resid()`:
+
+```{r}
+est_residuals <- resid(mod_rural_ses_int)
+```
+
+A statistical summary of the residuals:
+
+```{r}
+summary(est_residuals)
+sd(est_residuals)
+```
+
+And a histogram:
+
+```{r}
+hist(est_residuals, breaks = 30, col = "grey")
+```
+
+The residuals appear approximately normally distributed. Investigating outliers and whether there appear to be associations between the residuals and fitted values would be good next steps.

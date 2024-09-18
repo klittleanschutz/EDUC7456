@@ -1,0 +1,79 @@
+---
+title: "week 2 regression Practice"
+author: "Kate Little"
+date: "`r Sys.Date()`"
+format: html_document
+---
+
+```{r setup}
+setwd("C:/Users/littkate/Desktop/EDUC7456")
+
+library(vtable)
+library(sjPlot)
+library(readxl)
+library(tidyverse)
+
+dee24 <- read_excel(path = "regression example/Chronic_Absenteeism_202310.xlsx", range = "A1:O52")
+
+# subset to variables of interest -----
+
+wk02_data <- select(dee24, ST, State, CAR_1819, CAR_2122, COVID19_Rate, REMOTE_2020)
+
+# drop states with missing data -----
+
+wk02_data <- drop_na(wk02_data)
+
+```
+
+
+# RQ1 
+Did states with higher prevalence of remote instruction in 2021 
+experience larger increases in chronic absenteeism rates 
+from 2019 to 2022?
+
+```{r q1, echo = TRUE}
+
+# y is CAR_2122- CAR_1819
+# x1 = REMOTE_2020
+
+# create new var representing change in CAR (chronic absenteesim rate)
+wk02_data<-wk02_data%>%
+            mutate(CAR_CHANGE = CAR_2122-CAR_1819)
+
+# sumtable is part of vtable package
+sumtable(wk02_data)
+```
+
+There are 41 states with nonmissing data
+
+Lets make a model and plot on scatter plot
+```{r plot, echo= TRUE}
+# use lm to create linear model
+# read ~ as 'regress on'
+change_remote<-lm(CAR_CHANGE ~ REMOTE_2020, data = wk02_data)
+
+plot(wk02_data$REMOTE_2020, wk02_data$CAR_CHANGE)
+abline(change_remote, col = "blue")
+
+# show the stats of the model using tab model
+
+# tab_model is part of sjplot
+# only works in html
+tab_model(change_remote)
+
+```
+
+# Interpretation:
+
+## Intercept: 
+The predicted change in CAR from 18/19 to 21/22 for a state whose students spent 0% of the time remotely would be 10.2 units.
+
+## Slope: 
+a. For a 0.1 change in time spent learning remotely, one could predict an 1.153% change in absenteeism. 
+b. For every 10% of remote learning time in 20/21 the expected difference in absenteeism from 18/19-21/22 would be 1.153 precentage points.
+
+## Rsquared: 
+21.5% of the variation in increase in CAR is explained by the prevalence of remote learning in 20/21.
+
+
+

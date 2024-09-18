@@ -1,0 +1,220 @@
+---
+title: "Two-level MLM Examples in R (Hox et al. Chapter 2)"
+subtitle: "EDUC 7456"
+author: "Benjamin Shear"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This Markdown walks through the R code needed to re-create results for two-level MLM in Hox et al. Chapter 2.
+
+## Packages
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lme4)
+library(sjPlot)
+library(vtable)
+library(haven)
+```
+
+## Load Data
+
+```{r}
+dat_popular <- read_spss(file = "popular2.sav")
+```
+
+## Summary Statistics
+
+See prior Markdown documents for relevant summary statistics. Here I briefly show summary statistics for all variables at a single level. There are some additional variables in the file that we did not use previously.
+
+```{r}
+sumtable(dat_popular)
+```
+
+## Note about "REML"
+
+In these models I will use the option `REML=FALSE` which tells `lmer()` *not* to do restricted maximum likelihood (REML) estimation, which is the default in R. Instead, the estimation will use maximum likelihood (ML). I do this to be consistent with the way the models are estimated in the textbook.
+
+As we will discuss in class, REML is usually the preferred estimation procedure when sample sizes are smaller. With large samples REML and ML will be similar. However, there are some cases in which ML must be used for model comparisons.
+
+## Note about variance component standard errors
+
+You'll notice that R does not report standard errors for the variance components. There are philosophical and statistical reasons for this. We will discuss this more, as well as some best practices for evaluating the "statistical significance" of the variance components in class.
+
+## Table 2.1
+
+Table 2.1 has three models:
+
+- An OLS model with only an intercept.
+- An "empty" random-intercept (RI) model with only intercepts.
+- A random coefficient (RC) model with student extraversion, student gender, and teacher experience as predictors, allowing the coefficient for gender and extraversion to randomly vary.
+
+### Single-level OLS model
+
+```{r}
+tab21_ols <- lm(popular ~ 1, data = dat_popular)
+```
+
+### Empty RI model
+
+```{r}
+tab21_ri_empty <- lmer(popular ~ 1 + (1 | class),
+                       data = dat_popular,
+                       REML = FALSE)
+```
+
+### RC model with predictors
+
+I used the `control = lmerControl(optimizer = "bobyqa")` option to specify a different way for R to attempt to find the parameter estimates. Even with this option, notice that estimating this model we get an warning about a singular fit. I believe this occurs because the variance of the slopes for `sex` (student gender) is actually 0, and hence the estimate is unstable. The textbook discusses this variance being 0 as well.
+
+```{r}
+tab21_rc_covs <- lmer(popular ~ 1 + sex + extrav + texp + 
+                      (1 + sex + extrav | class),
+                      data = dat_popular,
+                      REML = FALSE,
+                      control = lmerControl(optimizer = "bobyqa"))
+```
+
+### Table
+
+Now use `tab_model()` to print a table. This includes a few extra statistics beyond those in the book. The estimates are nearly identical but not quite (these very small differences can occur when complicated models are estimated by different software programs).
+
+```{r}
+tab_model(
+  tab21_ols, tab21_ri_empty, tab21_rc_covs,
+  string.est = "Coef (s.e.)",
+  show.ci = FALSE,
+  show.p = FALSE, linebreak = FALSE,
+  collapse.se = TRUE, show.dev = TRUE
+)
+```
+
+## Table 2.2
+
+This table includes the RC model but with only the slope for `extrav` modeled as randomly varying across classrooms.
+
+### Random coefficients model
+
+Notice that this model where we removed the random slope for `extrav` can be estimated without any warnings or errors.
+
+```{r}
+tab22_rc_covs <- lmer(popular ~ 1 + sex + extrav + texp + 
+                      (1 + extrav | class),
+                      data = dat_popular,
+                      REML = FALSE)
+```
+
+### Table
+
+The difference with this table is that `tab_model()` converts the covariance between slopes and intercepts into a correlation.
+
+```{r}
+tab_model(
+  tab22_rc_covs,
+  string.est = "Coef (s.e.)",
+  show.ci = FALSE,
+  show.p = FALSE, linebreak = FALSE,
+  collapse.se = TRUE, show.dev = TRUE
+)
+```
+
+To see how the correlation is calculated:
+
+```{r}
+data.frame(VarCorr(tab22_rc_covs))
+```
+
+The covariance between slope and intercept (on row 3) is -0.18 as in the text. We can calculate the correlation as:
+
+$$\rho_{02}=\frac{-0.18469052}{\sqrt{1.28051488*0.03392561}}=-0.886\approx-0.89$$
+
+I used the full values in these equations because when you are working with squares and square roots, rounding before your final calculation can have a big effect on the result.
+
+## Table 2.3
+
+This table compares the RC model from Table 2.2 with a model that includes teacher experience as a predictor of the variation in slopes across classrooms, which implies a cross-level interaction.
+
+### Main effects model
+
+This is the same model estimated above in Table 2.2.
+
+### Cross-level interaction model
+
+Including teacher experience in the level 2 model for extraversion implies an interaction between teacher experience and extraversion. We could either create a variable for that or we can use the R `:` notation again.
+
+```{r}
+tab23_rc_inter <- lmer(popular ~ 1 + sex + extrav + texp + extrav:texp +
+                         (1 + extrav | class),
+                       data = dat_popular,
+                       REML = FALSE)
+```
+
+### Table
+
+This time I am making the table with more digits so that you can see the comparison with the textbook more accurately.
+
+```{r}
+tab_model(
+  tab22_rc_covs, tab23_rc_inter,
+  string.est = "Coef (s.e.)",
+  digits=3, digits.re = 3,
+  show.ci = FALSE,
+  show.p = FALSE, linebreak = FALSE,
+  collapse.se = TRUE, show.dev = TRUE
+)
+```
+
+Again, R is reporting the correlation rather than covariance among random effects. I prefer this. In the textbook, the covariance between the level 2 residuals (slopes and intercepts after adjusting for predictors) is -0.03. This sounds like a "small" number, but here we see that it is a correlation of -0.63 which is a moderate negative association.
+
+## Table 2.4
+
+Finally, Table 2.4 shows the same model from Table 2.2 (RC model with no interaction) and compares it with a version where either:
+
+- We calculate standardized coefficients post-hoc or,
+- We standardize variables and re-estimate the model.
+
+### Standardize variables
+
+The data file from the textbook already has standardized versions of the variables. However, here I create my own versions so that you can see how this works.
+
+### Standardized variables model
+
+```{r}
+tab24_zscores <- lmer(Zpopular ~ 1 + Zsex + Zextrav + Ztexp +
+                        (1 + Zextrav | class),
+                      data = dat_popular,
+                      REML = FALSE)
+```
+
+### Table
+
+Again, we see the result differ by small amounts (+/-0.01) from the textbook. Note that I use the `show.std="std"` option to have R show the standardized beta-coefficients alongisde the first model, and they can be compared to the model estimated with standardized data. R actually just re-estimates the model with standardized data when we specify `show.std="std"`!
+
+```{r}
+tab_model(
+  tab22_rc_covs, tab24_zscores,
+  show.std = "std",
+  string.est = "Coef (s.e.)",
+  digits = 2, digits.re = 2,
+  show.ci = FALSE,
+  show.p = FALSE, linebreak = FALSE,
+  collapse.se = TRUE, show.dev = TRUE
+)
+```
+
+### Note on standardized variables
+
+Standardized variables are often very useful, especially for variables such as `extrav` that measure a psychological construct with no natural units. **However** I think it almost never makes sense to fully standardize a binary dummy variable as was done here. It will often make sense to **center** a binary variable, and we will discuss this in class.
+
+
+

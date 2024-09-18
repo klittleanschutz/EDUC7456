@@ -1,0 +1,64 @@
+---
+title: "Short HW 1"
+author: "Kate Little"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/littkate/Desktop/EDUC7456/hw-1")
+```
+
+# Load Packages
+
+> Note: you may need to install some of these packages if you do not already have them installed. 
+
+```{r}
+library(tidyverse)
+library(haven)
+# install.packages("sjPlot")
+library(sjPlot)
+# install.packages("vtable")
+library(vtable)
+```
+
+# Load Data
+
+```{r}
+auto <- read.csv(file = "Auto.csv")
+```
+
+# Qestion 1 
+
+What is the mean of the `mgp` variable?
+
+```{r}
+mean(auto$mpg)
+```
+
+The mean `mpg` is: [23.45 miles per gallon]
+
+
+# Question 2
+
+What is the correlation between `horsepower` and `mpg`?
+
+```{r}
+cor(auto$horsepower, auto$mpg)
+```
+
+The correlation between `horsepower` and `mpg` is: [-0.778]
+
+Here is a scatterplot of the two variables:
+
+```{r}
+plot(x=auto$horsepower, y=auto$mpg)
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
