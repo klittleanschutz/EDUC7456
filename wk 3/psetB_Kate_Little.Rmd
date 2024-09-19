@@ -1,0 +1,298 @@
+---
+title: "PSET B"
+author: "Kate Little"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+---
+*AI Attribution: I used github copilot to little avail to help with formatting of sumtable and tab_model, and to troubleshoot error messages usually resulting from syntax errors*
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+In this problem set you will investigate variation of student achievement in mathematics within and between a sample of 160 schools. These are a subset of data from the National Center for Education Statistics ([NCES](https://nces.ed.gov)) "High School and Beyond" study ([HSB](https://nces.ed.gov/surveys/hsb/)) that followed a national cohort of high school seniors in the US in 1980. This dataset is used extensively in the Raudenbush and Bryk (2002) text and in limited cases of our textbook. While the dataset is old, we will use these data for two reasons. First, the multilevel structure and questions the dataset was designed to address remain relevant for more recent studies and datasets (e.g., see [here for some recent NCES data collections that may be useful](https://nces.ed.gov/surveys/)). Second, because these data are used in textbooks, it provides the opportunity to replicate the textbook analyses if you choose to do so, which can be a helpful way to connect the `R` code and output with the conceptual presentation of the models.
+
+In the problem set, some steps are primarily for instructional purposes and others are intended to replicate more substantive prior analyses of the data.
+
+**Data file:** hsb.RDS (obtained from the `merTools` package in R: https://rdrr.io/cran/merTools/man/hsb.html) 
+
+**Variables:**
+
+- **schid**: School ID variable
+- **minority**: a dummy variable representing student race/ethnicity (0=White, 1=non-White)
+- **female**: a dummy variable representing student gender (1=female; 0=male)
+- **ses**: A composite measure of social class provided by HSB. In the current sample, mean is approximately 0 and SD is approximately 0.8.
+- **mathach**: A mathematics test given in the senior year (mean = 12.7, sd = 6.9; for more info see here)
+- **size**: total student enrollment in the school
+- **sector**: a dummy variable (1=Catholic school; 0=public school)
+
+## Load Packages
+
+```{r, message=FALSE, warning=FALSE}
+library(haven)     # read in data files
+library(sjPlot)    # regression tables
+library(vtable)    # summary tables
+library(lme4)      # estimate MLM
+library(lmerTest)  # hypothesis testing for MLM
+library(tidyverse) # data management
+```
+
+## Load Data
+
+```{r}
+setwd("C:/Users/littkate/Desktop/EDUC7456/wk 3")
+hsb <- readRDS(file = "hsb.RDS")
+```
+
+## Variable definitions and inclusivity
+
+The dataset uses the term "minority" to identify students' racial or ethnic identities, consistent with the original study. However, it is important for us to use current terminology that is more inclusive to describe constructs such as racial and ethnic identities. Rather than identify students in the dataset as "minority" or not, we will identify students as either "students of color" or not (here, White students). This is in accordance with current guidance on inclusive language from the American Psychological Association (APA; see [here](https://www.apa.org/about/apa/equity-diversity-inclusion/language-guidelines#)).
+
+To reflect this change, rename the variable `minority`:
+
+```{r}
+hsb <- rename(hsb, soc=minority)
+```
+
+I have used `soc` as an abbreviation for "student of color" and will use this language where relevant. The variable values remain the same - thus, `soc=0` indicates a White student while `soc=1` indicates a student of color. Ideally we would have a more comprehensive set of racial/ethnic identities in the dataset, but these are not available in the data.
+
+Note that student gender identity is also represented only as a binary (female or not). Although gender identity is not fully represented by this binary, again, there is no more detailed information available in the data. 
+
+Hopefully, these limitations serve as a reminder to allow for more comprehensive identities to be represented in data that you collect.
+
+## Question 1
+
+*Create a table of summary statistics for the level 1 variables: soc, female, ses, and mathach. The table should include at least the following statistics for each variable: number of observations, mean, standard deviation, minimum, and maximum.*
+
+```{r}
+
+summary_table <- sumtable(hsb, vars = c("soc", "female", "ses", "mathach"), out = "return")
+
+# Render the table using kable to view in VS- it defaults to opening in a browser for some reason so i toss it into kable to see it in VS
+kable(summary_table) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+## Question 2
+
+*Create a table of summary statistics for the following level 2 variables: size, sector, average math achievement, percent students of color, average ses. The table should include at least the following statistics for each variable: number of observations, mean, standard deviation, minimum, and maximum. (Note: creating this table requires you to create a school-level dataset so that you can summarize these values at the school level.)*
+
+```{r}
+
+sch_hsb<-hsb%>%
+      group_by(schid)%>%
+      summarize(
+        n_students = n(),
+        pct_nonwhite = mean(soc),
+        pct_female = mean(female),
+        avg_ses = mean(ses),
+        avg_mathach = mean(mathach),
+        size = mean(size), # this will jsut be the size of each school
+        sector = mean(sector))
+
+# school_vars<-c(names(sch_hsb))
+
+sch_vars<-sumtable(sch_hsb, vars = c('n_students', 'pct_nonwhite', 'pct_female', 'avg_ses', 'avg_mathach', 'size', 'sector'))
+
+
+
+```
+
+## Question 3
+
+*Estimate an "empty" random-intercept model that allows you to estimate the ICC of math achievement across schools (use `REML=FALSE` in `lmer()`). The statistical model, where $Y$ is math achievement, is:*
+
+Level 1:
+
+$$Y_{ij} =\beta_{0j}+e_{ij}$$
+Level 2:
+$$\beta_{0j}=\gamma_{00}+u_{0j}$$
+Random effects:
+$$u_{0j} \sim N(0,\sigma^2_{u0}), \space e_{ij}\sim N(0,\sigma^2)$$
+
+*Create a table of results using `tab_model()`.*
+
+```{r}
+empty_mathach<-lmer(mathach ~1 + (1| schid), data = hsb, REML = FALSE)
+
+tab_model(empty_mathach)
+
+library(insight)
+var_btwn<-get_variance_intercept(empty_mathach)
+var_within<-get_variance_residual(empty_mathach)
+```
+
+## Question 4
+
+*Write 1 sentence interpreting each of the following statistics:* $\gamma_{00}$, $\sigma_e^2$, $\sigma^2_{u0}$ *(note in `tab_model()` $\tau_{00}=\sigma^2_{u0}$).*
+
+### Response:
+- $\gamma_{00}$ = The grand mean of math achievement across all schools  is 12.64 units.
+- $\sigma_e^2$ =  The variance of student-level deviations from their school means is 39.15 math achievement units. 
+- $\sigma^2_{u0}$ = The variance of school-level deviations from their overall intercept is 8.55 math achievement units.
+
+
+## Question 5
+
+*What is the estimated ICC of student math scores? Briefly interpret this estimated value. Based on your results so far, is there evidence that MLM might be needed to analyze these data? How do you know?*
+```{r}
+icc_empty<-(var_btwn)/(var_btwn+var_within)
+
+icc_empty
+
+nj<-7185/160
+desn_efct<-1+((nj-1)*0.18)
+
+eft_n<-nj/desn_efct
+
+naive_se<-1/sqrt(7185)
+
+se_samplemean<-sqrt((1/7185)*desn_efct)
+
+naive_se
+se_samplemean
+```
+
+### Response
+The estimated intraclass correlation coefficient of 0.18 indicates that 18% of the total variance in math achievement is between schools, while the remaining 82% of the variance in math achievement is within classrooms, which seems like quite a lot.  By calculating the design effect and comparing the naive estimate of standard error (0.012) to the standard error accounting for design effect (0.035), we can see that the standard error of the estimated mean is nearly twice as large as we anticipate if we ignore clustering so MLM should be used to analyze these data. 
+
+
+## Question 6
+
+*Calculate the variance of observed* **average** *math test scores across schools. (HINT: you calculated the standard deviation of observed average math test scores in question 2 above.) How does this estimate of the variance in school mean test scores compare to the estimate of the variance in school means from your model in Question #3? Why do you think these values differ?*
+
+```{r}
+var(sch_hsb$avg_mathach)
+
+```
+
+### Response
+The variance of observed average math test scores represents the actual variance observed in the data or $\hat{\sigma}^2_{u0}$ = 9.72, or the sample variance . The variance in the empty model test scores represents the estimated variance, $\sigma^2_{u0}$ or $\tau{00}$ = 8.61, which would represent the parameter population variance. 
+
+
+## Question 7
+
+*Estimate two different regression models:*
+
+a. *an OLS regression model predicting math achievement from students’ family SES.*
+b. *a random-intercept model predicting math achievement from students’ family SES that includes school random intercepts (use `REML=FALSE`).*
+
+*Create a nicely formatted regression table showing both model results side by side.*
+
+```{r}
+
+ols_math_ses<-lm(mathach ~ ses, data= hsb)
+ri_math_ses<-lmer(mathach~ 1 + ses + (1|schid), data = hsb, REML =TRUE)
+
+tab_model(ols_math_ses, ri_math_ses, 
+          title = "Models Predicting Student Math Achievement from Family SES",
+          dv.labels = c("OLS model", "Random-intercept model"),
+          show.ci=FALSE,
+          show.se=TRUE,
+          string.se="SE",
+          string.est="Est.")
+          
+```
+
+## Question 8
+
+*For each model in Question 7, write 1 sentence interpreting each of the following estimates: model intercept and coefficient for SES. Also write 1 sentence interpreting $\sigma^2_{u0}$ from the random intercept model.*
+
+### Response 
+
+- *OLS interpretation*: The estimates intercept of 12.75 indicates a student whose SES score is 0, we predict a math achievement score of 12.75. the estimated slope os 3.18 indicates that we expect student math scores to be 3.18 units higher for students with a 1 unit increase in SES.
+
+- *RI interpretation*: The average intercept across schools is 12.66, indicating that the predicted math achievement score for a student with an SES of 0 is 12.66. The slope of 2.39 indicates that for each 1 unit increase in SES, there is a predicted 2.39 unit increase in math achievement score, accounting for class level differences in SES. The $\sigma^2_{u0}$ = 4.77 indicates that the variance between average school math achievement scores is 4.77, which also represents the variance in intercepts. *I feel like there should be more to this interpretation*
+
+
+## Question 9
+
+*Briefly comment on what you notice about similarities and differences between the two models estimated in Question 7.*
+
+### Response
+Both models have significant intercepts and slopes for SES, and have a similar intercept value. The slope for the RI model is s quite a bit less than the OLS model, as is the R^2, although I do not think R^2 interpretations work the same with RI models as they do with OLS models.
+
+
+## Question 10
+
+*Create a new version of the student-level SES variable called "ses_gmc" by centering the `ses` variable at the grand mean in the dataset. (NOTE: the mean of the `ses` variable in the data is already very close to 0, but is not EXACTLY 0. After you do this step, the mean of "ses_gmc" should be exactly 0.) Calculate the mean of your new "ses_gmc" variable to be sure the mean is 0.*
+
+
+```{r}
+
+summary(hsb$ses)
+grmean_ses<-mean(hsb$ses)
+
+hsb<-hsb%>%
+      mutate(ses_gmc = ses - grmean_ses)
+
+summary(hsb$ses_gmc)
+
+```
+## Question 11
+
+*Estimate a random intercept model predicting math achievement from student ses (level 1 variable, grand mean centered) and school sector (level 2 variable). Use `REML=FALSE`. The model in statistical notation is, where $y$ is math achievement, $X$ is SES, and $W$ is school sector:*
+
+Level 1:
+
+$$y_{ij}=\beta_{0j}+\beta_{1j}(X_{ij}-\bar X)+e_{ij}$$
+
+Level 2:
+
+$$\beta_{0j}=\gamma_{00}+\gamma_{10}(W_j)+u_{0j}$$
+$$\beta_{1j}=\gamma_{10}$$
+
+Random effects:
+
+$$u_{0j} \sim N(0,\sigma^2_{u0}), \space e_{ij}\sim N(0,\sigma^2)$$
+
+*Use `tab_model()` to produce a nicely formatted table of the results.*
+
+```{r}
+
+ri_math_ses_sector<-lmer(mathach ~ 1 + ses_gmc + (1+sector|schid), data = hsb, REML = FALSE)
+
+tab_model(ri_math_ses_sector)
+
+
+```
+
+## Question 12
+
+*Write 1 sentence interpreting each of the following estimated parameters: $\gamma_{00}$, $\gamma_{01}$, $\gamma_{10}$, $\sigma^2_{u0}$.*
+
+### Response
+- $\gamma_{00}$ = 12.52 = the average school-level intercept; the average predicted value of math achievement when the centered ses is 0 at the classroom level and the school is in the public sector.
+- $\gamma_{01}$ = 2.02????
+- $\gamma_{10}$ = 2.39 = the predicted overall change in math achievement for a 1 unit change in centered ses and for a school in the public sector (sector = 0), assumed constant for all schools. 
+- $\sigma^2_{u0}$ = 4.06 = The variance in average school math achievement when ses and sector are held constant. *I feel like I am struggling with interpretations when we have both levels and also with $\sigma^2_{u0}$*
+
+
+## Question 13
+
+*Briefly explain 1 or 2 substantive conclusions you can draw from the model results in Question 11.*
+
+### Response
+1. 10% of the variation in math achievement is attributable to between-school variation. 
+2. There is a positive association between SES and math achievement.
+
+*I would like to say something about public vs private schools, but I am not sure how to interpret any of the output related to level 2 variables.*
+
+*I also got the following warning for the previous model : Model failed to converge: degenerate  Hessian with 1 negative eigenvalues*
+
+## Question 14
+
+*What is an example of a multilevel data structure in your field of research? This can by a hypothetical example or a real example you have come across in your own work or reading. Be sure to explain what the outcome ($Y$) variable is as well as what the level 1 units and level 2 (or higher) clusters are.*
+
+### Response
+
+In Public Health, multilevel data structures are very common, usually with the level 2 units being groups where some 'treatment'. This treatment is not necessarily medical but could reflect some public health initiative such as a grant program or community intervention such as community organization. With these types of studies, The level 1 units are most often individuals as the data us usually attained by surveys. One challenge is that individual-level data is often not publicly available due to identification concerns  so they are often aggregated to some other level. 
+
+Geographically, usually the smallest publicly available health data sets are mortality data sets that are at the county-level at best. Depending on the span of the phenomena you are studying the level 2 units may be Health Service Regions or states or larger. 
+
+One of the primary challenges we face as medical geographers is making meaningful insights into data at a local level (to inform those at risk) from data that are too broad of a scale to accurately represent the phenomena. 
+
+In injury prevention, and especially firearm injury prevention, a cornerstone in every paper argues for building the data infrastructure. We would love to be able to use MLM in firearm injury prevention but the dataset I have mentioned, Healthy Kids Colorado Survey, is one of the few I know of that has firearm access data, individual- and community-level structure, and geographic locations that are granular enough to make local inferences. 
