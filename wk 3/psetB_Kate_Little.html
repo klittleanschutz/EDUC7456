@@ -11,7 +11,7 @@
 
 <meta name="author" content="Kate Little" />
 
-<meta name="date" content="2024-09-18" />
+<meta name="date" content="2024-09-19" />
 
 <title>PSET B</title>
 
@@ -576,7 +576,7 @@ display: none;
 
 <h1 class="title toc-ignore">PSET B</h1>
 <h4 class="author">Kate Little</h4>
-<h4 class="date">2024-09-18</h4>
+<h4 class="date">2024-09-19</h4>
 
 </div>
 
@@ -882,7 +882,224 @@ at the school level.)</em></p>
 
 # school_vars&lt;-c(names(sch_hsb))
 
-sch_vars&lt;-sumtable(sch_hsb, vars = c(&#39;n_students&#39;, &#39;pct_nonwhite&#39;, &#39;pct_female&#39;, &#39;avg_ses&#39;, &#39;avg_mathach&#39;, &#39;size&#39;, &#39;sector&#39;))</code></pre>
+sumtable(sch_hsb, vars = c(&#39;n_students&#39;, &#39;pct_nonwhite&#39;, &#39;pct_female&#39;, &#39;avg_ses&#39;, &#39;avg_mathach&#39;, &#39;size&#39;, &#39;sector&#39;))</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+Summary Statistics
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Variable
+</th>
+<th style="text-align:left;">
+N
+</th>
+<th style="text-align:left;">
+Mean
+</th>
+<th style="text-align:left;">
+Std. Dev.
+</th>
+<th style="text-align:left;">
+Min
+</th>
+<th style="text-align:left;">
+Pctl. 25
+</th>
+<th style="text-align:left;">
+Pctl. 75
+</th>
+<th style="text-align:left;">
+Max
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+n_students
+</td>
+<td style="text-align:left;">
+160
+</td>
+<td style="text-align:left;">
+45
+</td>
+<td style="text-align:left;">
+12
+</td>
+<td style="text-align:left;">
+14
+</td>
+<td style="text-align:left;">
+35
+</td>
+<td style="text-align:left;">
+54
+</td>
+<td style="text-align:left;">
+67
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+pct_nonwhite
+</td>
+<td style="text-align:left;">
+160
+</td>
+<td style="text-align:left;">
+0.27
+</td>
+<td style="text-align:left;">
+0.3
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+0.037
+</td>
+<td style="text-align:left;">
+0.4
+</td>
+<td style="text-align:left;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+pct_female
+</td>
+<td style="text-align:left;">
+160
+</td>
+<td style="text-align:left;">
+0.52
+</td>
+<td style="text-align:left;">
+0.26
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+0.44
+</td>
+<td style="text-align:left;">
+0.61
+</td>
+<td style="text-align:left;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+avg_ses
+</td>
+<td style="text-align:left;">
+160
+</td>
+<td style="text-align:left;">
+-0.0062
+</td>
+<td style="text-align:left;">
+0.41
+</td>
+<td style="text-align:left;">
+-1.2
+</td>
+<td style="text-align:left;">
+-0.31
+</td>
+<td style="text-align:left;">
+0.31
+</td>
+<td style="text-align:left;">
+0.82
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+avg_mathach
+</td>
+<td style="text-align:left;">
+160
+</td>
+<td style="text-align:left;">
+13
+</td>
+<td style="text-align:left;">
+3.1
+</td>
+<td style="text-align:left;">
+4.2
+</td>
+<td style="text-align:left;">
+10
+</td>
+<td style="text-align:left;">
+15
+</td>
+<td style="text-align:left;">
+20
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+size
+</td>
+<td style="text-align:left;">
+160
+</td>
+<td style="text-align:left;">
+1098
+</td>
+<td style="text-align:left;">
+630
+</td>
+<td style="text-align:left;">
+100
+</td>
+<td style="text-align:left;">
+588
+</td>
+<td style="text-align:left;">
+1526
+</td>
+<td style="text-align:left;">
+2713
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sector
+</td>
+<td style="text-align:left;">
+160
+</td>
+<td style="text-align:left;">
+0.44
+</td>
+<td style="text-align:left;">
+0.5
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+1
+</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="question-3" class="section level2">
 <h2>Question 3</h2>
@@ -1265,9 +1482,8 @@ student with an SES of 0 is 12.66. The slope of 2.39 indicates that for
 each 1 unit increase in SES, there is a predicted 2.39 unit increase in
 math achievement score, accounting for class level differences in SES.
 The <span class="math inline">\(\sigma^2_{u0}\)</span> = 4.77 indicates
-that the variance between average school math achievement scores is
-4.77, which also represents the variance in intercepts. <em>I feel like
-there should be more to this interpretation</em></p></li>
+the variance for school average math scores adjusted for SES (variance
+of school level intercepts).</p></li>
 </ul>
 </div>
 </div>
@@ -1323,13 +1539,9 @@ X)+e_{ij}\]</span></p>
 e_{ij}\sim N(0,\sigma^2)\]</span></p>
 <p><em>Use <code>tab_model()</code> to produce a nicely formatted table
 of the results.</em></p>
-<pre class="r"><code>ri_math_ses_sector&lt;-lmer(mathach ~ 1 + ses_gmc + (1+sector|schid), data = hsb, REML = FALSE)</code></pre>
-<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, :
-## unable to evaluate scaled gradient</code></pre>
-<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, :
-## Model failed to converge: degenerate Hessian with 1 negative eigenvalues</code></pre>
-<pre><code>## Warning: Model failed to converge with 1 negative eigenvalue: -4.2e-02</code></pre>
-<pre class="r"><code>tab_model(ri_math_ses_sector)</code></pre>
+<pre class="r"><code>ri_math_ses_sector&lt;-lmer(mathach ~ 1 + ses_gmc + sector +(1|schid), data = hsb, REML = FALSE)
+
+tab_model(ri_math_ses_sector)</code></pre>
 <table style="border-collapse:collapse; border:none;">
 <tr>
 <th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; ">
@@ -1358,10 +1570,10 @@ p
 (Intercept)
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
-12.52
+11.72
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
-12.16 – 12.89
+11.28 – 12.16
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
 <strong>&lt;0.001</strong>
@@ -1372,10 +1584,24 @@ p
 ses gmc
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
-2.39
+2.38
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
-2.19 – 2.60
+2.17 – 2.58
+</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
+<strong>&lt;0.001</strong>
+</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">
+sector
+</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
+2.10
+</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
+1.44 – 2.76
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">
 <strong>&lt;0.001</strong>
@@ -1399,28 +1625,14 @@ Random Effects
 τ<sub>00</sub> <sub>schid</sub>
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">
-4.06
-</td>
-<tr>
-<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">
-τ<sub>11</sub> <sub>schid.sector</sub>
-</td>
-<td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">
-2.02
-</td>
-<tr>
-<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">
-ρ<sub>01</sub> <sub>schid</sub>
-</td>
-<td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">
--0.09
+3.62
 </td>
 <tr>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">
 ICC
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">
-0.10
+0.09
 </td>
 <tr>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">
@@ -1442,7 +1654,7 @@ Observations
 Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 </td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">
-0.078 / 0.169
+0.115 / 0.194
 </td>
 </tr>
 </table>
@@ -1453,21 +1665,33 @@ Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 parameters: <span class="math inline">\(\gamma_{00}\)</span>, <span class="math inline">\(\gamma_{01}\)</span>, <span class="math inline">\(\gamma_{10}\)</span>, <span class="math inline">\(\sigma^2_{u0}\)</span>.</em></p>
 <div id="response-5" class="section level3">
 <h3>Response</h3>
+<div id="equations" class="section level4">
+<h4>Equations</h4>
+<p>Level 1:</p>
+<p><span class="math display">\[mathach_{ij}=\beta_{0j}+\beta_{1j}(ses_{ij}-\bar
+ses)+e_{ij}\]</span></p>
+<p>Level 2:</p>
+<p><span class="math display">\[\beta_{0j}=\gamma_{00}+\gamma_{01}(sector_j)+u_{0j}\]</span>
+<span class="math display">\[\beta_{1j}=\gamma_{10}\]</span></p>
 <ul>
-<li><span class="math inline">\(\gamma_{00}\)</span> = 12.52 = the
-average school-level intercept; the average predicted value of math
-achievement when the centered ses is 0 at the classroom level and the
+<li><span class="math inline">\(\gamma_{00}\)</span> = 11.72 = grand
+mean = the average school-level intercept; the average predicted value
+of math achievement when the ses is 0 at the classroom level and the
 school is in the public sector.</li>
-<li><span class="math inline">\(\gamma_{01}\)</span> = 2.02????</li>
-<li><span class="math inline">\(\gamma_{10}\)</span> = 2.39 = the
-predicted overall change in math achievement for a 1 unit change in
-centered ses and for a school in the public sector (sector = 0), assumed
-constant for all schools.</li>
-<li><span class="math inline">\(\sigma^2_{u0}\)</span> = 4.06 = The
+<li><span class="math inline">\(\gamma_{01}\)</span> = 2.10 =
+coefficient of sector = the predicted average math scores in catholic
+schools are 2.1 points higher in catholic schools than in public
+schools.<br />
+</li>
+<li><span class="math inline">\(\gamma_{10}\)</span> = 2.38 =
+coefficient of SES = The assumed association between average math score
+and ses holding constant sector.</li>
+<li><span class="math inline">\(\sigma^2_{u0}\)</span> = 3.62 = The
 variance in average school math achievement when ses and sector are held
-constant. <em>I feel like I am struggling with interpretations when we
-have both levels and also with <span class="math inline">\(\sigma^2_{u0}\)</span></em></li>
+constant; it indicates the variance for school average math scores
+adjusted for SES and sector</li>
 </ul>
+</div>
 </div>
 </div>
 <div id="question-13" class="section level2">
@@ -1477,17 +1701,15 @@ the model results in Question 11.</em></p>
 <div id="response-6" class="section level3">
 <h3>Response</h3>
 <ol style="list-style-type: decimal">
-<li>10% of the variation in math achievement is attributable to
-between-school variation.</li>
-<li>There is a positive association between SES and math
-achievement.</li>
+<li>9% of the variation in math achievement is attributable to
+between-school variation, leaving 81% of the variation attributed to
+within-school variation.</li>
+<li>Catholic schools tend to have higher average math scores than do
+public schools, adjusting for ses.</li>
+<li>Considering that the average ses is 0, average predicted math scores
+would be 11.72, which is about half of the range of math scores, so
+students with and ses of 0 would fall near the middle of the group.</li>
 </ol>
-<p><em>I would like to say something about public vs private schools,
-but I am not sure how to interpret any of the output related to level 2
-variables.</em></p>
-<p><em>I also got the following warning for the previous model : Model
-failed to converge: degenerate Hessian with 1 negative
-eigenvalues</em></p>
 </div>
 </div>
 <div id="question-14" class="section level2">
@@ -1499,30 +1721,21 @@ the outcome (<span class="math inline">\(Y\)</span>) variable is as well
 as what the level 1 units and level 2 (or higher) clusters are.</em></p>
 <div id="response-7" class="section level3">
 <h3>Response</h3>
-<p>In Public Health, multilevel data structures are very common, usually
-with the level 2 units being groups where some ‘treatment’. This
-treatment is not necessarily medical but could reflect some public
-health initiative such as a grant program or community intervention such
-as community organization. With these types of studies, The level 1
-units are most often individuals as the data us usually attained by
-surveys. One challenge is that individual-level data is often not
-publicly available due to identification concerns so they are often
-aggregated to some other level.</p>
-<p>Geographically, usually the smallest publicly available health data
-sets are mortality data sets that are at the county-level at best.
-Depending on the span of the phenomena you are studying the level 2
-units may be Health Service Regions or states or larger.</p>
-<p>One of the primary challenges we face as medical geographers is
-making meaningful insights into data at a local level (to inform those
-at risk) from data that are too broad of a scale to accurately represent
-the phenomena.</p>
-<p>In injury prevention, and especially firearm injury prevention, a
-cornerstone in every paper argues for building the data infrastructure.
-We would love to be able to use MLM in firearm injury prevention but the
-dataset I have mentioned, Healthy Kids Colorado Survey, is one of the
-few I know of that has firearm access data, individual- and
-community-level structure, and geographic locations that are granular
-enough to make local inferences.</p>
+<p>An example of multilevel data structure in Injury and Prevention
+research is the healthy Kids Colorado Survey which is an opt-in sample
+from Colorado Middle and High schools. The aim of the survey is to have
+a picture of kids’ well-being. The survey asks about mental health,
+buillying, substance use, and other risk and protective factors such as
+firearm access (which I will be looking at). The level 1 units are
+students and the level 2 units are schools, although level 2 units could
+also be years as the survey is administed biannually. For my work in
+firearm injury prevention I want to look at firearm access as the
+outcome (no access to over 24 hours). This will likely require
+dichotimization of the response values to ‘less than 1 hour’ and ‘more
+than 1 hour’ which will require MLM using logistic regression as I have
+a binary outcome. I am taking this class in part specifically to
+facilitate analysis of this dataset to fulfill requests from several
+government agencies that contract with my institution.</p>
 </div>
 </div>
 

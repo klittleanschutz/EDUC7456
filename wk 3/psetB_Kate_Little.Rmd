@@ -95,7 +95,7 @@ sch_hsb<-hsb%>%
 
 # school_vars<-c(names(sch_hsb))
 
-sch_vars<-sumtable(sch_hsb, vars = c('n_students', 'pct_nonwhite', 'pct_female', 'avg_ses', 'avg_mathach', 'size', 'sector'))
+sumtable(sch_hsb, vars = c('n_students', 'pct_nonwhite', 'pct_female', 'avg_ses', 'avg_mathach', 'size', 'sector'))
 
 
 
@@ -205,7 +205,7 @@ tab_model(ols_math_ses, ri_math_ses,
 
 - *OLS interpretation*: The estimates intercept of 12.75 indicates a student whose SES score is 0, we predict a math achievement score of 12.75. the estimated slope os 3.18 indicates that we expect student math scores to be 3.18 units higher for students with a 1 unit increase in SES.
 
-- *RI interpretation*: The average intercept across schools is 12.66, indicating that the predicted math achievement score for a student with an SES of 0 is 12.66. The slope of 2.39 indicates that for each 1 unit increase in SES, there is a predicted 2.39 unit increase in math achievement score, accounting for class level differences in SES. The $\sigma^2_{u0}$ = 4.77 indicates that the variance between average school math achievement scores is 4.77, which also represents the variance in intercepts. *I feel like there should be more to this interpretation*
+- *RI interpretation*: The average intercept across schools is 12.66, indicating that the predicted math achievement score for a student with an SES of 0 is 12.66. The slope of 2.39 indicates that for each 1 unit increase in SES, there is a predicted 2.39 unit increase in math achievement score, accounting for class level differences in SES. The $\sigma^2_{u0}$ = 4.77 indicates the variance for school average math scores adjusted for SES (variance of school level intercepts). 
 
 
 ## Question 9
@@ -253,7 +253,7 @@ $$u_{0j} \sim N(0,\sigma^2_{u0}), \space e_{ij}\sim N(0,\sigma^2)$$
 
 ```{r}
 
-ri_math_ses_sector<-lmer(mathach ~ 1 + ses_gmc + (1+sector|schid), data = hsb, REML = FALSE)
+ri_math_ses_sector<-lmer(mathach ~ 1 + ses_gmc + sector +(1|schid), data = hsb, REML = FALSE)
 
 tab_model(ri_math_ses_sector)
 
@@ -265,10 +265,21 @@ tab_model(ri_math_ses_sector)
 *Write 1 sentence interpreting each of the following estimated parameters: $\gamma_{00}$, $\gamma_{01}$, $\gamma_{10}$, $\sigma^2_{u0}$.*
 
 ### Response
-- $\gamma_{00}$ = 12.52 = the average school-level intercept; the average predicted value of math achievement when the centered ses is 0 at the classroom level and the school is in the public sector.
-- $\gamma_{01}$ = 2.02????
-- $\gamma_{10}$ = 2.39 = the predicted overall change in math achievement for a 1 unit change in centered ses and for a school in the public sector (sector = 0), assumed constant for all schools. 
-- $\sigma^2_{u0}$ = 4.06 = The variance in average school math achievement when ses and sector are held constant. *I feel like I am struggling with interpretations when we have both levels and also with $\sigma^2_{u0}$*
+#### Equations 
+Level 1:
+
+$$mathach_{ij}=\beta_{0j}+\beta_{1j}(ses_{ij}-\bar ses)+e_{ij}$$
+
+Level 2:
+
+$$\beta_{0j}=\gamma_{00}+\gamma_{01}(sector_j)+u_{0j}$$
+$$\beta_{1j}=\gamma_{10}$$
+
+
+- $\gamma_{00}$ = 11.72 = grand mean = the average school-level intercept; the average predicted value of math achievement when the ses is 0 at the classroom level and the school is in the public sector.
+- $\gamma_{01}$ = 2.10 = coefficient of sector = the predicted average math scores in catholic schools are 2.1 points higher in catholic schools than in public schools.  
+- $\gamma_{10}$ = 2.38 = coefficient of SES = The assumed association between average math score and ses holding constant sector. 
+- $\sigma^2_{u0}$ = 3.62 = The variance in average school math achievement when ses and sector are held constant; it indicates the variance for school average math scores adjusted for SES and sector
 
 
 ## Question 13
@@ -276,12 +287,9 @@ tab_model(ri_math_ses_sector)
 *Briefly explain 1 or 2 substantive conclusions you can draw from the model results in Question 11.*
 
 ### Response
-1. 10% of the variation in math achievement is attributable to between-school variation. 
-2. There is a positive association between SES and math achievement.
-
-*I would like to say something about public vs private schools, but I am not sure how to interpret any of the output related to level 2 variables.*
-
-*I also got the following warning for the previous model : Model failed to converge: degenerate  Hessian with 1 negative eigenvalues*
+1. 9% of the variation in math achievement is attributable to between-school variation, leaving 81% of the variation attributed to within-school variation. 
+2. Catholic schools tend to have higher average math scores than do public schools, adjusting for ses. 
+3. Considering that the average ses is 0, average predicted math scores would be 11.72, which is about half of the range of math scores, so students with and ses of 0 would fall near the middle of the group. 
 
 ## Question 14
 
@@ -289,10 +297,4 @@ tab_model(ri_math_ses_sector)
 
 ### Response
 
-In Public Health, multilevel data structures are very common, usually with the level 2 units being groups where some 'treatment'. This treatment is not necessarily medical but could reflect some public health initiative such as a grant program or community intervention such as community organization. With these types of studies, The level 1 units are most often individuals as the data us usually attained by surveys. One challenge is that individual-level data is often not publicly available due to identification concerns  so they are often aggregated to some other level. 
-
-Geographically, usually the smallest publicly available health data sets are mortality data sets that are at the county-level at best. Depending on the span of the phenomena you are studying the level 2 units may be Health Service Regions or states or larger. 
-
-One of the primary challenges we face as medical geographers is making meaningful insights into data at a local level (to inform those at risk) from data that are too broad of a scale to accurately represent the phenomena. 
-
-In injury prevention, and especially firearm injury prevention, a cornerstone in every paper argues for building the data infrastructure. We would love to be able to use MLM in firearm injury prevention but the dataset I have mentioned, Healthy Kids Colorado Survey, is one of the few I know of that has firearm access data, individual- and community-level structure, and geographic locations that are granular enough to make local inferences. 
+An example of multilevel data structure in Injury and Prevention research is the healthy Kids Colorado Survey which is an opt-in sample from Colorado Middle and High schools. The aim of the survey is to have a picture of kids' well-being. The survey asks about mental health, buillying, substance use, and other risk and protective factors such as firearm access (which I will be looking at). The level 1 units are students and the level 2 units are schools, although level 2 units could also be years as the survey is administed biannually. For my work in firearm injury prevention I want to look at firearm access as the outcome (no access to over 24 hours). This will likely require dichotimization of the response values to 'less than 1 hour' and 'more than 1 hour' which will require MLM using logistic regression as I have a binary outcome. I am taking this class in part specifically to facilitate analysis of this dataset to fulfill requests from several government agencies that contract with my institution. 
